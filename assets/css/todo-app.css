@@ -486,7 +486,7 @@
             min-height: 42px;
             width: 100%;
             padding: 6px 0;
-            background: linear-gradient(180deg, #ece1f5 0%, rgba(236, 225, 245, 0.92) 100%);
+            background: rgb(235, 229,241);
             align-items: center;
             pointer-events: none;
         }
