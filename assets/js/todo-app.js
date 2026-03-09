@@ -37,6 +37,8 @@
                     dateDisplay: document.getElementById('current-date'),
                     progressStats: document.getElementById('progress-stats'),
                     taskList: document.getElementById('task-list'),
+                    taskContainer: document.querySelector('.task-container'),
+                    completedStickyIndicator: document.getElementById('completed-sticky-indicator'),
                     taskInputWrapper: document.getElementById('task-input-wrapper'),
                     
                     inpText: document.getElementById('task-text'),
@@ -402,6 +404,7 @@
                     this.dom.btnImport.addEventListener('click', () => this.dom.fileInput.click());
                     this.dom.fileInput.addEventListener('change', (e) => this.importData(e.target));
                     this.dom.btnArchive.addEventListener('click', () => this.archiveDataToCsv());
+                    this.dom.taskContainer.addEventListener('scroll', () => this.updateCompletedStickyIndicator());
                 },
 
                 updateToggleButtons() {
@@ -548,8 +551,7 @@
                     const dateVal = this.dom.inpDate.value; 
                     const timeVal = this.dom.inpTime.value;
                     const recurrence = this.dom.inpRecurrence.value;
-                    const selectedListId = this.dom.inpList.value;
-                    const listId = this.state.currentListId === 'tasks' ? 'tasks' : selectedListId;
+                    const listId = this.dom.inpList.value;
 
                     if (listId === 'weekly-overview') return;
                     
@@ -1265,6 +1267,27 @@
                         frag.appendChild(li);
                     });
                     listEl.appendChild(frag);
+                    this.updateCompletedStickyIndicator();
+                },
+
+                updateCompletedStickyIndicator() {
+                    const indicator = this.dom.completedStickyIndicator;
+                    const container = this.dom.taskContainer;
+                    const listEl = this.dom.taskList;
+                    if (!indicator || !container || !listEl) return;
+                    if (!this.state.showCompleted) {
+                        indicator.style.display = 'none';
+                        return;
+                    }
+                    const divider = listEl.querySelector('.completed-divider-item');
+                    if (!divider) {
+                        indicator.style.display = 'none';
+                        return;
+                    }
+                    const containerRect = container.getBoundingClientRect();
+                    const dividerRect = divider.getBoundingClientRect();
+                    const atCompletedSection = dividerRect.top <= containerRect.top + 8;
+                    indicator.style.display = atCompletedSection ? 'flex' : 'none';
                 },
 
                 getRelativeTime(timestamp, hasTime, referenceTime = Date.now()) {

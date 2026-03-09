@@ -477,7 +477,19 @@
         }
 
         /* Task List */
-        .task-container { flex: 1; overflow-y: auto; padding: 0 var(--main-side-gap) 32px var(--main-side-gap); }
+        .task-container { flex: 1; overflow-y: auto; padding: 0 var(--main-side-gap) 32px var(--main-side-gap); position: relative; }
+        .completed-sticky-indicator {
+            display: none;
+            position: sticky;
+            top: 0;
+            z-index: 6;
+            min-height: 42px;
+            width: 100%;
+            padding: 6px 0;
+            background: linear-gradient(180deg, #ece1f5 0%, rgba(236, 225, 245, 0.92) 100%);
+            align-items: center;
+            pointer-events: none;
+        }
         .completed-divider-item {
             margin: 8px 0 10px;
             display: flex;
