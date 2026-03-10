@@ -925,12 +925,10 @@
                     const list = this.db.lists.find(l => l.id === this.state.currentListId) || this.db.lists[0];
                     this.dom.viewTitle.textContent = list.title;
                     if (list.id === 'my-day') {
-                        this.dom.dateDisplay.textContent = new Date().toLocaleString('zh-CN', {
+                        this.dom.dateDisplay.textContent = new Date().toLocaleDateString('zh-CN', {
                             month: 'long',
                             day: 'numeric',
-                            weekday: 'long',
-                            hour: '2-digit',
-                            minute: '2-digit'
+                            weekday: 'long'
                         });
                     } else if (list.id === 'weekly-overview') {
                         this.dom.dateDisplay.textContent = this.formatCurrentWeekRangeText();
@@ -1506,10 +1504,6 @@
                         if (currentDateKey !== lastDateKey) {
                             lastDateKey = currentDateKey;
                             this.renderAll();
-                            return;
-                        }
-                        if (!this.state.sidebarSearchKeyword && this.state.currentListId === 'my-day') {
-                            this.renderHeader();
                         }
                     }, 60000);
                 }
