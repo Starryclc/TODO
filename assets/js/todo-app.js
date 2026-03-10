@@ -258,6 +258,15 @@
                         this.dom.inpTime.value = '';
                         this.dom.inpDate.focus();
                     });
+
+                    // Quick time buttons
+                    document.querySelectorAll('.btn-quick-time').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            const timeType = btn.dataset.time;
+                            this.setQuickTime(timeType);
+                        });
+                    });
                     this.dom.btnClearEditTimeX.addEventListener('click', (e) => {
                         e.preventDefault();
                         this.dom.editInpDate.value = '';
@@ -472,6 +481,71 @@
                 resetDueInputs() {
                     this.dom.inpDate.value = '';
                     this.dom.inpTime.value = '';
+                },
+
+                // Get current date in Beijing timezone
+                getBeijingDate() {
+                    const now = new Date();
+                    const beijingTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
+                    return beijingTime;
+                },
+
+                // Format date as YYYY-MM-DD in Beijing timezone
+                formatBeijingDate(date) {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                },
+
+                // Set quick time based on button type
+                setQuickTime(timeType) {
+                    const now = this.getBeijingDate();
+                    const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+                    let targetDate = new Date(now);
+                    let targetTime = '17:30';
+
+                    switch (timeType) {
+                        case 'end-of-day':
+                            // Today 17:30
+                            targetDate = new Date(now);
+                            break;
+                        case 'tomorrow':
+                            // Tomorrow 17:30
+                            targetDate.setDate(targetDate.getDate() + 1);
+                            break;
+                        case 'this-friday':
+                            // This Friday or next Friday if weekend
+                            if (currentDay === 0) {
+                                // Sunday -> next Friday
+                                targetDate.setDate(targetDate.getDate() + 5);
+                            } else if (currentDay === 6) {
+                                // Saturday -> next Friday
+                                targetDate.setDate(targetDate.getDate() + 6);
+                            } else {
+                                // Monday(1) to Friday(5): days until Friday = 5 - currentDay
+                                const daysUntilFriday = 5 - currentDay;
+                                targetDate.setDate(targetDate.getDate() + daysUntilFriday);
+                            }
+                            break;
+                        case 'next-friday':
+                            // Next Friday
+                            if (currentDay === 0) {
+                                // Sunday -> next Friday (5 days)
+                                targetDate.setDate(targetDate.getDate() + 5);
+                            } else if (currentDay === 6) {
+                                // Saturday -> next Friday (6 days)
+                                targetDate.setDate(targetDate.getDate() + 6);
+                            } else {
+                                // Monday(1) to Friday(5): days until next Friday = 5 - currentDay + 7
+                                const daysUntilNextFriday = 5 - currentDay + 7;
+                                targetDate.setDate(targetDate.getDate() + daysUntilNextFriday);
+                            }
+                            break;
+                    }
+
+                    this.dom.inpDate.value = this.formatBeijingDate(targetDate);
+                    this.dom.inpTime.value = targetTime;
                 },
 
                 toggleExpandedTask(id) {
