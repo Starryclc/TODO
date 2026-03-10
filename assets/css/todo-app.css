@@ -24,6 +24,13 @@
             height: 100vh;
             display: flex;
             font-size: 14px;
+        }
+
+        /* Prevent text selection on interactive elements */
+        aside, .nav-item, .custom-checkbox, .btn-action, .btn-icon-hover,
+        .btn-toggle-completed, .btn-quick-time, .btn-quick-time-edit,
+        .btn-sm, .btn-primary, .btn-clear-time, .btn-clear-time-x,
+        .step-checkbox, .step-delete, .edit-step-delete {
             user-select: none;
         }
 

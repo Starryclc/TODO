@@ -13,6 +13,7 @@
                     currentListId: 'tasks',
                     storageKey: 'ms_todo_pro_vfinal',
                     idbName: 'todo_app_db',
+                    idbVersion: 1,  // IndexedDB version for future migrations
                     idbStore: 'app_kv',
                     idbDataKey: 'appData',
                     draggedListId: null,
@@ -96,6 +97,15 @@
                     await this.loadData();
                     this.renderAll();
                     this.startTimer();
+                },
+
+                // Utility: Debounce function
+                debounce(fn, delay) {
+                    let timer = null;
+                    return function(...args) {
+                        if (timer) clearTimeout(timer);
+                        timer = setTimeout(() => fn.apply(this, args), delay);
+                    };
                 },
 
                 bindPickers() {
@@ -324,10 +334,10 @@
                         this.renderTasks();
                     });
 
-                    this.dom.sidebarSearchInput.addEventListener('input', () => {
+                    this.dom.sidebarSearchInput.addEventListener('input', this.debounce(() => {
                         this.state.sidebarSearchKeyword = this.dom.sidebarSearchInput.value.trim().toLowerCase();
                         this.renderAll();
-                    });
+                    }, 200));
                     this.dom.sidebarSearchClear.addEventListener('click', () => {
                         this.state.sidebarSearchKeyword = '';
                         this.dom.sidebarSearchInput.value = '';
@@ -455,7 +465,7 @@
                                 <button class="step-checkbox" disabled title="步骤"></button>
                                 <span class="step-text">${this.escapeHtml(step.text)}</span>
                             </div>
-                            <button class="edit-step-delete" data-step-id="${step.id}" title="删除步骤">
+                            <button class="edit-step-delete" data-step-id="${this.escapeHtml(String(step.id))}" title="删除步骤">
                                 <svg viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
                             </button>
                         </li>
@@ -880,10 +890,10 @@
                     this.dom.editStepList.innerHTML = steps.map(step => `
                         <li class="step-item ${step.completed ? 'done' : ''}">
                             <div class="edit-step-main">
-                                <button class="step-checkbox" data-step-id="${step.id}" title="完成步骤"></button>
+                                <button class="step-checkbox" data-step-id="${this.escapeHtml(String(step.id))}" title="完成步骤"></button>
                                 <span class="step-text">${this.escapeHtml(step.text)}</span>
                             </div>
-                            <button class="edit-step-delete" data-step-id="${step.id}" title="删除步骤">
+                            <button class="edit-step-delete" data-step-id="${this.escapeHtml(String(step.id))}" title="删除步骤">
                                 <svg viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
                             </button>
                         </li>
@@ -1137,12 +1147,21 @@
                 },
 
                 highlightText(text, keyword) {
-                    const safe = this.escapeHtml(text || '');
-                    if (!keyword) return safe;
+                    const rawText = text || '';
+                    if (!keyword) return this.escapeHtml(rawText);
                     const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                    if (!escapedKeyword) return safe;
+                    if (!escapedKeyword) return this.escapeHtml(rawText);
                     const re = new RegExp(`(${escapedKeyword})`, 'ig');
-                    return safe.replace(re, '<mark class="kw-highlight">$1</mark>');
+                    // Split text by matches, escape each part, then reassemble with highlight
+                    const parts = rawText.split(re);
+                    return parts.map((part, i) => {
+                        // Even indices are non-matches, odd indices are matches
+                        if (i % 2 === 0) {
+                            return this.escapeHtml(part);
+                        } else {
+                            return `<mark class="kw-highlight">${this.escapeHtml(part)}</mark>`;
+                        }
+                    }).join('');
                 },
 
                 isSameDay(a, b) {
@@ -1372,16 +1391,16 @@
                         const hasMeta = metaHtml !== '';
                         const stepsHtml = steps.map(step => `
                             <li class="step-item ${step.completed ? 'done' : ''}">
-                                <button class="step-checkbox" data-step-id="${step.id}" title="完成步骤"></button>
+                                <button class="step-checkbox" data-step-id="${this.escapeHtml(step.id)}" title="完成步骤"></button>
                                 <span class="step-text">${this.highlightText(step.text, activeKeyword)}</span>
-                                <button class="step-delete" data-step-id="${step.id}" title="删除步骤">×</button>
+                                <button class="step-delete" data-step-id="${this.escapeHtml(step.id)}" title="删除步骤">×</button>
                             </li>
                         `).join('');
                         const isToggledByCard = this.state.expandedTaskIds.includes(task.id);
                         const baseShowDetail = this.state.sidebarSearchKeyword ? true : this.state.showDetails;
                         const shouldShowDetail = baseShowDetail ? !isToggledByCard : isToggledByCard;
                         li.className = `task-item ${task.completed ? 'completed' : ''} ${shouldShowDetail ? 'show-detail' : ''} ${hasMeta ? '' : 'no-meta'}`;
-                        li.dataset.id = task.id;
+                        li.dataset.id = String(task.id);
 
                         const completedInfoText = task.completedAt ? `完成于${this.formatDateWithWeekday(task.completedAt)}` : '';
                         const createdInfoText = `创建于${this.formatDateWithWeekday(this.getAddedAt(task))}`;
@@ -1509,7 +1528,7 @@
                             reject(new Error('IndexedDB not supported'));
                             return;
                         }
-                        const req = indexedDB.open(this.state.idbName, 1);
+                        const req = indexedDB.open(this.state.idbName, this.state.idbVersion);
                         req.onupgradeneeded = () => {
                             const db = req.result;
                             if (!db.objectStoreNames.contains(this.state.idbStore)) {
@@ -1543,6 +1562,23 @@
                     }));
                 },
 
+                validateData(data) {
+                    if (!data || typeof data !== 'object') return false;
+                    if (!Array.isArray(data.lists) || !Array.isArray(data.tasks)) return false;
+                    // Validate each list has required fields
+                    for (const list of data.lists) {
+                        if (!list || typeof list !== 'object') return false;
+                        if (typeof list.id !== 'string' || typeof list.title !== 'string') return false;
+                    }
+                    // Validate each task has required fields
+                    for (const task of data.tasks) {
+                        if (!task || typeof task !== 'object') return false;
+                        if (typeof task.id !== 'string' && typeof task.id !== 'number') return false;
+                        if (typeof task.text !== 'string' || typeof task.listId !== 'string') return false;
+                    }
+                    return true;
+                },
+
                 async loadData() {
                     let data = null;
                     try {
@@ -1554,7 +1590,7 @@
                         if (legacy) {
                             try {
                                 const legacyData = JSON.parse(legacy);
-                                if (legacyData && legacyData.lists && legacyData.tasks) {
+                                if (this.validateData(legacyData)) {
                                     data = legacyData;
                                     try {
                                         await this.writeToIndexedDb(legacyData);
@@ -1564,7 +1600,7 @@
                         }
                     }
 
-                    if (data && data.lists && data.tasks) this.db = data;
+                    if (data && this.validateData(data)) this.db = data;
                     this.ensureSystemLists();
                     this.normalizeTasks();
                 },
