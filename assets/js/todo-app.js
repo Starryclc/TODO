@@ -1380,7 +1380,7 @@
                                 const completedRef = task.completedAt || now;
                                 const wasOverdueAtCompletion = this.isOverdueAt(task, completedRef);
                                 if (wasOverdueAtCompletion) {
-                                    dueText = `超期 (${this.formatDueDateShort(task.dueDate, false)})`;
+                                    dueText = `超期 (${this.formatDueDateShort(task.dueDate, !!task.hasTime)})`;
                                     colorClass = 'text-danger';
                                 } else {
                                     dueText = this.formatDueDateShort(task.dueDate, !!task.hasTime);
